@@ -1,0 +1,4 @@
+Bundle-Name: formEntryWrapper
+Bundle-SymbolicName: formEntryWrapper
+Bundle-Version: 1.0.0
+Bundle-Activator: formEntryWrapper.SetupActivator
