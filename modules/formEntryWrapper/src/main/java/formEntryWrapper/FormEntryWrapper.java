@@ -1,14 +1,17 @@
 package formEntryWrapper;
 
 import com.liferay.dynamic.data.mapping.model.DDMFormInstance;
+import com.liferay.dynamic.data.mapping.model.Value;
 import com.liferay.dynamic.data.mapping.service.DDMFormInstanceLocalServiceUtil;
 import com.liferay.dynamic.data.mapping.service.DDMFormInstanceRecordLocalService;
 import com.liferay.dynamic.data.mapping.service.DDMFormInstanceRecordLocalServiceWrapper;
+import com.liferay.dynamic.data.mapping.storage.DDMFormFieldValue;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceWrapper;
 
 import com.liferay.portal.kernel.service.UserLocalServiceUtil;
+import com.liferay.portal.kernel.servlet.SessionErrors;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
@@ -29,7 +32,7 @@ public class FormEntryWrapper extends DDMFormInstanceRecordLocalServiceWrapper {
 
 	public static String HASHESLISTEXPANDONAME="incognitoHashesList";
 	public static String ANONYMOUSEXPANDONAME="isAnonymous";
-	private static String hashField="incognitoHash";
+	private static String hashField="hash";
 
 	@Reference(unbind = "-")
 	private void serviceSetter(DDMFormInstanceRecordLocalService s){setWrappedService(s);}
@@ -66,12 +69,27 @@ public class FormEntryWrapper extends DDMFormInstanceRecordLocalServiceWrapper {
 		DDMFormInstance form = DDMFormInstanceLocalServiceUtil.getDDMFormInstance(ddmFormInstanceId);
 		String[] hashes = form.getExpandoBridge().getAttribute(HASHESLISTEXPANDONAME).toString().split("\n");
 
+
 		//IF THE HASH IS LIKE ANY OF THE HASHES
 		if (ddmFormValues.getDDMFormFieldValues().stream().
-				anyMatch(k->(k.getName().equals(hashField))&&Stream.of(hashes).anyMatch(h->h.equals(k.getValue())))){
+				anyMatch(k->(k.getName().equals(hashField))&&
+						Stream.of(hashes).map(String::trim).anyMatch(h->h.equals(k.getValue().getString(k.getValue().
+								getDefaultLocale()).toString().trim())))){
+
+			Value value = ddmFormValues.getDDMFormFieldValuesMap().get(hashField).get(0).getValue();
+			String submittedHash = value.getString(value.getDefaultLocale()).toString().trim();
+
+			System.out.println(String.format("hash [%s] is correct",submittedHash));
+
+			String newVal = Stream.of(hashes).filter(h -> !h.trim().equals(submittedHash)).reduce("", (acc, l) -> l + "\n" + acc);
+			form.getExpandoBridge().setAttribute(HASHESLISTEXPANDONAME,newVal);
 			return super.addFormInstanceRecord(userId,groupId,ddmFormInstanceId, ddmFormValues,serviceContext);
 		}else{
-		    throw new PortalException("you are not allowed to participate on this form");
+			int index = ddmFormValues.getDDMFormFieldValues().indexOf(hashField);
+			SessionErrors.add(serviceContext.getLiferayPortletRequest(),"WRONG HASH you are not allowed to participate on this form");
+			System.out.println(String.format("hash is INcorrect"));
+			//SessionErrors.add(serviceContext.getRequest().getSession(),"WRONG HASH you are not allowed to participate on this form");
+		    throw new PortalException("WRONG HASH you are not allowed to participate on this form ");
         }
 
 	}
