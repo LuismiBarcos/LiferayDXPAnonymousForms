@@ -25,6 +25,7 @@
 			long id=i.getFormInstanceId();
 			String checkname="anon_"+id;
 			String textname="hashes_"+id;
+			System.out.println(String.format("(%s,%s)=>(%s,%s)",checkname,textname,isanonymous,hashesText));
 %>
 	   <div class="row">
 	   <div class="col-sm-6 col-md-6 col-lg-6 col-xl-6">
