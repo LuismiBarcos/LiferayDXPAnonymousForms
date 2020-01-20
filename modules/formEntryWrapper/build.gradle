@@ -10,3 +10,37 @@ dependencies {
 	compileOnly group: "javax.servlet", name: "javax.servlet-api"
 	compileOnly group: "jstl", name: "jstl"
 }
+
+class CustomDockerInfo extends DefaultTask {
+	String dockerContainerName
+
+	@TaskAction
+	void deployInDocker() {
+		if (isValidName(dockerContainerName)) {
+			def jarFilePath = "build/libs/formEntryWrapper-1.0.0.jar"
+			def dockerDeployPath = "/opt/liferay/deploy"
+
+
+			def build = "blade gw build"
+			def deploy = "tar Ccf \$(dirname $jarFilePath) - \$(basename $jarFilePath) | docker exec -i $dockerContainerName tar x -C $dockerDeployPath -f -"
+			def buildAndDeploy = "$build && $deploy"
+			def buildAndDeployExecution = buildAndDeploy.execute()
+
+			println deploy
+
+			println buildAndDeployExecution.text
+		} else {
+			throw new StopActionException('Container name is not valid')
+		}
+	}
+
+	private static boolean isValidName(String containerName) {
+		return !(containerName == '' || containerName == ' ' || containerName == null)
+	}
+}
+
+
+tasks.register("customDockerDeploy", CustomDockerInfo) {
+	group = 'docker'	// This put the task inside de tasks group called docker
+	dockerContainerName = "my_liferay"
+}
