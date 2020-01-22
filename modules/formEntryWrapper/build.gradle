@@ -39,8 +39,15 @@ class CustomDockerInfo extends DefaultTask {
 	}
 }
 
-
 tasks.register("customDockerDeploy", CustomDockerInfo) {
 	group = 'docker'	// This put the task inside de tasks group called docker
 	dockerContainerName = "my_liferay"
+}
+
+tasks.register("customClean") {
+	group = 'docker'	// This put the task inside de tasks group called docker
+	def command = 'docker exec my_liferay rm -rf /opt/liferay/osgi/modules/formEntryWrapper-1.0.0.jar'
+	def result = command.execute()
+
+	println result.text
 }
